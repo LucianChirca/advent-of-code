@@ -30,7 +30,7 @@ pub fn solve() -> i32 {
             .collect();
         
         let mut is_safe = is_report_safe(&levels);
-        for i in 0..levels.iter().count(){
+        for i in 0..levels.len(){
             let new_report: Vec<_> = levels[..i].iter()
                 .chain(levels[i + 1..].iter())
                 .cloned()
