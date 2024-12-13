@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::fs::read_to_string;
 
 fn is_correct(row: &[i64], elements_after: &HashMap<i64, HashSet<i64>>) -> bool{
@@ -23,30 +23,41 @@ fn get_middle(row: &[i64]) -> i64 {
     row[middle_index]
 }
 
-fn dfs(row: &[i64], el: &i64, visited: &mut HashSet<i64>, res: &mut Vec<i64>, elements_after: &HashMap<i64, HashSet<i64>>){
-    visited.insert(*el);
-    
-    let empty_set = HashSet::new();
-    let edges = elements_after.get(el).unwrap_or(&empty_set);
-    for edge in edges {
-        if visited.contains(edge) { continue }
-        
-        dfs(row, edge, visited, res, elements_after);
-    }
-    if row.contains(el) {
-        res.insert(0, *el);
-    }
-}
-
-fn fix_row(row: &[i64], elements_after: &HashMap<i64, HashSet<i64>>) -> Vec<i64>{
+fn fix_row(row: &[i64], elements_before: &HashMap<i64, HashSet<i64>>, elements_after: &HashMap<i64, HashSet<i64>>) -> Vec<i64>{
     let mut res: Vec<i64> = Vec::new();
     
-    let mut visited: HashSet<i64> = HashSet::new();
+    let mut num_elements_before: HashMap<i64, i64> = HashMap::new();
     for el in row {
-        if visited.contains(el){ continue }
-        visited.insert(*el);
+        *num_elements_before.entry(*el).or_insert(0) += 0;
+        if let Some(elements_before_set) = elements_before.get(el) {
+            for element_before in elements_before_set {
+                if !row.contains(element_before) { continue }
+                *num_elements_before.entry(*el).or_insert(0) += 1;
+            }
+        }
+    }
+    
+    let mut q: VecDeque<i64> = VecDeque::new();
+    for (el, num_before) in num_elements_before.iter() {
+        if *num_before == 0 {
+            q.push_back(*el);
+        }
+    }
+    
+    while !q.is_empty() {
+        let el = q.pop_front().unwrap();
+        res.push(el);
         
-        dfs(row, el, &mut visited, &mut res, elements_after);
+        if !elements_after.contains_key(&el){
+            continue
+        }
+        
+        for element_after in elements_after.get(&el).unwrap(){
+            *num_elements_before.entry(*element_after).or_insert(0) -= 1;
+            if *num_elements_before.get(element_after).unwrap() == 0 {
+                q.push_back(*element_after);
+            }
+        }
     }
     
     res
@@ -81,14 +92,9 @@ pub fn solve() -> i64 {
             .collect();
 
         if !is_correct(&row, &elements_after){
-            let fixed_row = fix_row(&row, &elements_after);
-            println!("Original: {:?} Fixed: {:?}", row, fixed_row);
+            let fixed_row = fix_row(&row, &elements_before, &elements_after);
             res += get_middle(&fixed_row);
         }
-        
-        // for el in row {
-        //     println!("Node: {}, Edges: {:?}", el, elements_before.get(&el).unwrap());
-        // }
 
     }
 
