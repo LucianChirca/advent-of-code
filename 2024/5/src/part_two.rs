@@ -22,10 +22,11 @@ fn get_middle(row: &[i64]) -> i64 {
 
     row[middle_index]
 }
-
+// Implements Kahn's Algorithm (Topological sort)
 fn fix_row(row: &[i64], elements_before: &HashMap<i64, HashSet<i64>>, elements_after: &HashMap<i64, HashSet<i64>>) -> Vec<i64>{
     let mut res: Vec<i64> = Vec::new();
     
+    // For each element in the row, determine how many elements must be before it
     let mut num_elements_before: HashMap<i64, i64> = HashMap::new();
     for el in row {
         *num_elements_before.entry(*el).or_insert(0) += 0;
@@ -37,25 +38,28 @@ fn fix_row(row: &[i64], elements_before: &HashMap<i64, HashSet<i64>>, elements_a
         }
     }
     
-    let mut q: VecDeque<i64> = VecDeque::new();
+    // Add to the queue the elements that don't need any elements before them
+    let mut queue: VecDeque<i64> = VecDeque::new();
     for (el, num_before) in num_elements_before.iter() {
         if *num_before == 0 {
-            q.push_back(*el);
+            queue.push_back(*el);
         }
     }
     
-    while !q.is_empty() {
-        let el = q.pop_front().unwrap();
+    // Now empty the queue
+    while !queue.is_empty() {
+        let el = queue.pop_front().unwrap();
         res.push(el);
         
         if !elements_after.contains_key(&el){
             continue
         }
         
+        // Every time you use an element, remove its count from the elements that come after it
         for element_after in elements_after.get(&el).unwrap(){
             *num_elements_before.entry(*element_after).or_insert(0) -= 1;
             if *num_elements_before.get(element_after).unwrap() == 0 {
-                q.push_back(*element_after);
+                queue.push_back(*element_after);
             }
         }
     }
