@@ -81,7 +81,7 @@ fn find_guard(grid: &[Vec<char>]) -> Option<GuardPosition>{
     None
 }
 
-fn move_guard(grid: &mut [Vec<char>], guard_position: GuardPosition) -> Option<GuardPosition> {
+fn move_guard(grid: &[Vec<char>], guard_position: GuardPosition) -> Option<GuardPosition> {
     let mut new_position: GuardPosition = guard_position.clone();
     new_position.move_self();
 
@@ -96,36 +96,23 @@ fn move_guard(grid: &mut [Vec<char>], guard_position: GuardPosition) -> Option<G
         new_position.rotate_clockwise();
         return Some(new_position);
     }
-
-    // All illegal moves handled, mark as "visited"
-    grid[guard_position.row_num as usize][guard_position.col_num as usize] = 'X';
-    grid[new_position.row_num as usize][new_position.col_num as usize] = new_position.direction;
-
+    
     Some(new_position)
 }
 
-fn count_visited_cells(grid: &[Vec<char>]) -> i64 {
-    let mut res: i64 = 0;
-    for row in grid {
-        for cell in row {
-            if *cell != '#' && *cell != '.' {
-                res += 1;
-            }
+fn has_cycle(grid: &[Vec<char>], max_iterations: i64) -> bool {
+    let mut guard_position = find_guard(grid);
+    let mut iterations: i64 = 0;
+    while guard_position.is_some() {
+        guard_position = move_guard(grid, guard_position.unwrap());
+        iterations += 1;
+        
+        if iterations == max_iterations {
+            return true;
         }
     }
-
-    res
-}
-
-fn print_grid(grid: &[Vec<char>]){
-    println!("----------------------");
-    for row in grid {
-        for cell in row {
-            print!("{}", cell);
-        }
-        println!();
-    }
-    println!("----------------------");
+    
+    false
 }
 
 pub fn solve() -> i64 {
@@ -133,12 +120,19 @@ pub fn solve() -> i64 {
     for line in read_to_string("in.txt").unwrap().lines() {
         grid.push(line.chars().collect());
     }
-
-    let mut guard_position = find_guard(&grid);
-    while guard_position.is_some() {
-        // print_grid(&grid);
-        guard_position = move_guard(&mut grid, guard_position.unwrap());
+    
+    let mut res: i64 = 0;
+    let height = grid.len();
+    let width = grid[0].len();
+    for row_num in 0..height {
+        for col_num in 0..width {
+            if grid[row_num][col_num] == '.' {
+                grid[row_num][col_num] = '#';
+                let max_iterations = (height as i64) * (width as i64) * 4;
+                res += has_cycle(&grid, max_iterations) as i64;
+                grid[row_num][col_num] = '.';
+            }
+        }
     }
-
-    count_visited_cells(&grid)
+    res
 }
